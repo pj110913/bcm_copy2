@@ -58,31 +58,68 @@ class PreProcessing:
 
         return cropped_image
 
-
     def calculate_horizontal_intensity(self, image):
         """
         Sum intensity of x for each y, only for spectrogram image.
         """
-        pass
+        image_spec = image.convert('L')
+        
+        image_spec_arr = np.array(image_spec)
+        
+        image_spec_dist = image_spec_arr.sum(axis=1)
+        
+        return image_spec_dist
 
     def plot_horizontal_intensity(self, image):
         """
         Plot above
         """
-        pass
+        plt.figure(figsize=(6,10))
+        plt.barh(range(len(image_spec_dist)), image_spec_dist, height=1)
+        plt.gca().invert_yaxis()
+        plt.title('intensity_distribution')
+        plt.ylabel('y axis same as image height')
+        plt.xlabel('Sum of pixel values of x axis')
+        plt.grid(False)
+        
+        return plt.show()
 
-    def crop_image_by_intensity(self, image, lower_percentile, upper_percentile):
+    def crop_image_by_intensity(self, image, image_path, lower_percentile, upper_percentile):
         """
-        Calculate the 5th and 95th percentile of the horizontal intensity distribution,
+        Calculate the 2th and 98th percentile of the horizontal intensity distribution,
         crop the spectrogram image (on y-axis/height)
         """
-        pass
+        image_intensity = np.cumsum(image_spec_dist)
+        image_height = image_intensity[-1]
+        top = np.searchsorted(image_intensity, image_height*upper_percentile)
+        bottom = np.searchsorted(image_intensity, image_height*lower_percentile)
+        
+        image_cropped_byint = image.convert('L').crop((0,bottom, image.convert('L').width, top))
+        """
+        save image
+        """
+        return image_cropped_byint.save(image_path[:-4] + "_cropped" + image_path[-4:])
 
-    def interpolate_height(self, image, standard_height):
+   def interpolate_height(self, image, standard_height):
         """
         Set a standard height, interpolate all spectrogram images to this same height
         """
-        pass
+        image_cropped_byint_arr = np.array(image)
+        width, height = image.size
+        # height_standard = 500
+        
+        y=np.linspace(0, height-1, height)
+        y_new = np.linspace(0, height-1, standard_height)
+        
+        image_cropped_interpolated_arr = np.zeros((standard_height, width), dtype=np.unit8)
+        
+        for w in range(width):
+            f = interp1d(y, image_cropped_byint_arr[:,w], kind='linear', fill_value="extrapolate")
+            image_cropped_interpolated_arr[:,w] = f(y_new)
+        
+        image_cropped_interpolated_image = Image.fromarry(image_cropped_interpolated_arr)
+        
+        return plt.show()
 
     def extract_waves(self, image):
         """
